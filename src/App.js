@@ -1,29 +1,53 @@
-// src/App.js
-import React, { useEffect, useState } from 'react';
-import MindMap from './MindMap';
-import keywords from './keywords';
+import React, { useState, useEffect } from 'react';
+import cytoscape from 'cytoscape';
 
 function App() {
-  const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
+  const [cy, setCy] = useState(null);
 
   useEffect(() => {
-    const nodes = keywords.map(k => ({
-      id: k.id,
-      label: k.name
-    }));
+    const cyInstance = cytoscape({
+      container: document.getElementById('cy'),
+      elements: [
+        { data: { id: 'a', label: 'Keyword A' } },
+        { data: { id: 'b', label: 'Keyword B' } },
+        { data: { source: 'a', target: 'b' } }
+      ],
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': '#007bff',
+            'label': 'data(label)',
+            'color': '#fff',
+            'text-valign': 'center',
+            'text-halign': 'center'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'line-color': '#ccc'
+          }
+        }
+      ],
+      layout: {
+        name: 'grid',
+        rows: 1
+      }
+    });
 
-    const edges = keywords.slice(1).map((k, i) => ({
-      source: keywords[i].id,
-      target: k.id
-    }));
+    setCy(cyInstance);
 
-    setGraphData({ nodes, edges });
+    return () => {
+      cyInstance.destroy();
+    };
   }, []);
 
   return (
     <div>
-      <h1 style={{ textAlign: 'center' }}>Mind Map of Keywords</h1>
-      <MindMap data={graphData} />
+      <h1>Mind Map of Keywords</h1>
+      <div id="cy" style={{ width: '100%', height: '600px' }}></div>
     </div>
   );
 }
