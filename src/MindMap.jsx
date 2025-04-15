@@ -4,7 +4,7 @@ import { setupVoiceRecognition } from './utils/voiceRecognition'; // ensure this
 
 const generateUniqueNodeId = () => `node-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-const keywordDictionary = ['we', 'make', 'apple', 'icathianrain', 'garen', 'shaco'];
+const keywordDictionary = ['we', 'make', 'apple', 'great', 'again', 'america', 'freedom'];
 
 const MindMap = () => {
   const containerRef = useRef(null);
