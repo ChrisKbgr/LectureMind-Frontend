@@ -1,51 +1,44 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import cytoscape from 'cytoscape';
-import { setupVoiceRecognition } from './utils/voiceRecognition'; // ensure this file is inside `src/utils/`
-
-const generateUniqueNodeId = () => `node-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
-const keywordDictionary = ['we', 'make', 'apple', 'great', 'again', 'america', 'freedom'];
+import { setupVoiceRecognition } from './utils/voiceRecognition';
+import KeywordInput from './components/KeywordInput';
+import NodeEditor from './components/NodeEditor';
+import DetectedPanel from './components/DetectedPanel';
+import FullTranscriptPanel from './components/FullTranscriptPanel';
+import './styles/MindMap.css';
 
 const MindMap = () => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
-  const [nodeCount, setNodeCount] = useState(1);
-  const [selectedNode, setSelectedNode] = useState(null);
+  const recognitionRef = useRef(null);
   const selectedNodeRef = useRef(null);
+
+  const [nodeCount, setNodeCount] = useState(0); // Changed from 1 to 0
+  const [selectedNode, setSelectedNode] = useState(null);
   const [labelInput, setLabelInput] = useState('');
   const [extraText, setExtraText] = useState('');
   const [nodeColor, setNodeColor] = useState('#4e91ff');
-  const recognitionRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
 
-  const createNodeFromVoice = (keyword) => {
-    const cy = cyRef.current;
-    const id = generateUniqueNodeId();
-    const label = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+  const [keywords, setKeywords] = useState([]);
+  const [newKeyword, setNewKeyword] = useState('');
 
-    if (cy.getElementById(id).length > 0) return;
+  const [detectedWords, setDetectedWords] = useState([]);
+  const [fullTranscriptLog, setFullTranscriptLog] = useState([]);
 
-    cy.add({
-      group: 'nodes',
-      data: { id, label },
-      position: {
-        x: 100 + Math.random() * 500,
-        y: 100 + Math.random() * 400,
-      },
-      style: {
-        'background-color': '#28a745',
-        'text-outline-color': '#28a745',
-      }
+  const addUniqueTranscript = (newText) => {
+    setFullTranscriptLog((prev) => {
+      const now = Date.now();
+      const words = newText.split(/\s+/).filter(Boolean);
+      const newEntries = words.map((word) => ({
+        text: word,
+        timestamp: now
+      }));
+      
+      // Keep only recent entries
+      const filtered = prev.filter(entry => now - entry.timestamp < 10000);
+      return [...filtered, ...newEntries];
     });
-
-    if (selectedNodeRef.current) {
-      cy.add({
-        group: 'edges',
-        data: { source: selectedNodeRef.current.id(), target: id }
-      });
-    }
-
-    setNodeCount((n) => n + 1);
   };
 
   useEffect(() => {
@@ -100,15 +93,23 @@ const MindMap = () => {
           }
         }
       ],
-      layout: {
-        name: 'grid',
-        rows: 1,
-      },
+      layout: { name: 'grid', rows: 1 },
       minZoom: 0.5,
       maxZoom: 2,
     });
 
     cyRef.current = cy;
+
+    cy.on('tap', (event) => {
+      // If clicked outside nodes, deselect current node
+      if (event.target === cy) {
+        if (selectedNodeRef.current) {
+          selectedNodeRef.current.unselect();
+          selectedNodeRef.current = null;
+          setSelectedNode(null);
+        }
+      }
+    });
 
     cy.on('tap', 'node', (event) => {
       const clickedNode = event.target;
@@ -120,14 +121,11 @@ const MindMap = () => {
         const existingEdge = cy.edges().some(edge => {
           const src = edge.data('source');
           const tgt = edge.data('target');
-          return (src === sourceId && tgt === targetId);
+          return (src === sourceId && tgt === targetId) || (src === targetId && tgt === sourceId);
         });
 
         if (!existingEdge) {
-          cy.add({
-            group: 'edges',
-            data: { source: sourceId, target: targetId }
-          });
+          cy.add({ group: 'edges', data: { source: sourceId, target: targetId } });
         }
 
         selectedNodeRef.current.unselect();
@@ -141,7 +139,7 @@ const MindMap = () => {
 
         const labelParts = clickedNode.data('label').split('\n');
         setLabelInput(labelParts[0] || '');
-        setExtraText(labelParts[1]?.replace(/^[-–—•>→]*( )*/, '') || '');
+        setExtraText(labelParts[2] || '');
         setNodeColor(clickedNode.style('background-color'));
       }
     });
@@ -165,38 +163,28 @@ const MindMap = () => {
 
     document.addEventListener('keydown', handleKeyDown);
 
-    const recognition = setupVoiceRecognition((keyword, fullTranscript) => {
-      console.log(`🧠 Detected Keyword: ${keyword} from "${fullTranscript}"`);
-      createNodeFromVoice(keyword);
-    }, keywordDictionary);
-
-    recognitionRef.current = recognition;
-
     return () => {
       cy.destroy();
       document.removeEventListener('keydown', handleKeyDown);
-      if (recognition) recognition.stop();
     };
   }, []);
 
-  const addNode = () => {
+  const addNode = useCallback(() => {
     const cy = cyRef.current;
-    const id = generateUniqueNodeId();
+    const id = `node-${nodeCount}`;
     const label = `Node ${nodeCount}`;
-
-    if (cy.getElementById(id).length > 0) return;
 
     cy.add({
       group: 'nodes',
       data: { id, label },
       position: {
-        x: 100 + Math.random() * 500,
-        y: 100 + Math.random() * 400,
+        x: 120 + (nodeCount * 50) % 600,
+        y: 120 + (nodeCount * 40) % 400,
       },
     });
 
     setNodeCount((n) => n + 1);
-  };
+  }, [nodeCount]);
 
   const updateNode = () => {
     if (selectedNode) {
@@ -212,99 +200,111 @@ const MindMap = () => {
     }
   };
 
-  return (
-    <div style={{ padding: '1rem', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '10px' }}>
-        <button
-          onClick={addNode}
-          style={{
-            padding: '10px 24px',
-            backgroundColor: '#6c757d',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-            transition: '0.2s ease'
-          }}
-        >
-          ➕ Add Node
-        </button>
+  useEffect(() => {
+    const recognition = setupVoiceRecognition(
+      (keyword, transcript) => {
+        if (keyword && keywords.length > 0) { // Only check keywords if we have any
+          // Check if any existing node already has this keyword as a label
+          const existingNodes = cyRef.current.$('node');
+          const keywordExists = existingNodes.some(node => 
+            node.data('label').toLowerCase() === keyword.toLowerCase()
+          );
 
-        <button
-          onClick={() => {
-            if (isListening) {
-              recognitionRef.current.stop();
-              setIsListening(false);
-            } else {
-              recognitionRef.current.start();
-              setIsListening(true);
+          if (!keywordExists) {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000);
+            const id = `node-${keyword.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${random}`;
+            const label = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+
+            cyRef.current.add({
+              group: 'nodes',
+              data: { id, label },
+              position: {
+                x: 100 + Math.random() * 300,
+                y: 100 + Math.random() * 300,
+              },
+              style: {
+                'background-color': '#28a745',
+                'text-outline-color': '#28a745'
+              }
+            });
+
+            if (selectedNodeRef.current) {
+              cyRef.current.add({
+                group: 'edges',
+                data: { source: selectedNodeRef.current.id(), target: id }
+              });
             }
-          }}
-          style={{
-            padding: '10px 24px',
-            backgroundColor: isListening ? '#dc3545' : '#198754',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-            transition: '0.2s ease'
-          }}
-        >
-          {isListening ? '🛑 Stop Listening' : '🎙️ Start Voice'}
-        </button>
 
-        {selectedNode && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <input
-              type="text"
-              value={labelInput}
-              onChange={(e) => setLabelInput(e.target.value)}
-              placeholder="Node title"
-              style={{ padding: '6px', borderRadius: '6px' }}
+            setNodeCount(n => n + 1);
+            setDetectedWords(prev => {
+              if (!prev.includes(keyword)) {
+                return [...prev.slice(-9), keyword];
+              }
+              return prev;
+            });
+          }
+        }
+      },
+      (transcript) => {
+        addUniqueTranscript(transcript);
+      },
+      keywords
+    );
+
+    recognitionRef.current = recognition;
+
+    return () => recognition && recognition.stop();
+  }, [keywords]);
+
+  const nodeEditorProps = {
+    labelInput,
+    setLabelInput,
+    extraText,
+    setExtraText,
+    nodeColor,
+    setNodeColor,
+    updateNode,
+  };
+
+  return (
+    <div className="mindmap-container">
+      <div className="controls-container">
+        <div className="controls-section">
+          <div className="controls-left">
+            <KeywordInput
+              keywords={keywords}
+              newKeyword={newKeyword}
+              setNewKeyword={setNewKeyword}
+              setKeywords={setKeywords}
             />
-            <input
-              type="text"
-              value={extraText}
-              onChange={(e) => setExtraText(e.target.value)}
-              placeholder="Extra text"
-              style={{ padding: '6px', borderRadius: '6px' }}
-            />
-            <input
-              type="color"
-              value={nodeColor}
-              onChange={(e) => setNodeColor(e.target.value)}
-            />
+          </div>
+          
+          <div className="action-buttons">
+            <button onClick={addNode} className="btn btn-add">➕ Add Node</button>
             <button
-              onClick={updateNode}
-              style={{
-                padding: '6px 16px',
-                backgroundColor: '#4e91ff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
+              onClick={() => {
+                if (isListening) {
+                  recognitionRef.current?.stop();
+                  setIsListening(false);
+                } else {
+                  recognitionRef.current?.start();
+                  setIsListening(true);
+                }
               }}
+              className={`btn ${isListening ? 'btn-danger' : 'btn-success'}`}
             >
-              Apply
+              {isListening ? '🛑 Stop Listening' : '🎙️ Start Voice'}
             </button>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div
-        ref={containerRef}
-        style={{
-          width: '100%',
-          height: '650px',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          background: '#e6e6e6'
-        }}
-      />
+        <DetectedPanel detectedWords={detectedWords} />
+        <FullTranscriptPanel fullTranscriptLog={fullTranscriptLog} />
+      </div>
+      
+      <div className="mindmap-canvas" ref={containerRef} />
+      {selectedNode && <NodeEditor {...nodeEditorProps} />}
     </div>
   );
 };

@@ -1,37 +1,67 @@
-// src/utils/voiceRecognition.js
-export const setupVoiceRecognition = (onKeywordDetected, dictionary = []) => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-  
-    if (!SpeechRecognition) {
-      console.warn('Speech Recognition not supported in this browser.');
-      return null;
-    }
-  
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.continuous = true;
-    recognition.interimResults = false;
-  
-    recognition.onresult = (event) => {
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          const transcript = event.results[i][0].transcript.toLowerCase().trim();
-          console.log('🎤 Voice Input:', transcript);
-  
-          dictionary.forEach((keyword) => {
-            if (transcript.includes(keyword)) {
-              onKeywordDetected(keyword, transcript);
-            }
-          });
-        }
+export const setupVoiceRecognition = (onSpeechDetected, onTranscript, keywords = []) => {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert('Your browser does not support speech recognition.');
+    return null;
+  }
+
+  const recognition = new window.webkitSpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  let currentUtterance = '';
+
+  recognition.onresult = (event) => {
+    const result = event.results[event.resultIndex];
+    const transcript = result[0].transcript.trim();
+
+    if (!result.isFinal) {
+      // For interim results, only send the difference
+      const newPart = transcript.slice(currentUtterance.length);
+      if (newPart) {
+        onTranscript(newPart);
+        currentUtterance = transcript;
       }
-    };
-  
-    recognition.onerror = (e) => {
-      console.error('Speech Recognition Error:', e.error);
-    };
-  
-    return recognition;
+    } else {
+      // For final results
+      const newPart = transcript.slice(currentUtterance.length);
+      if (newPart) {
+        onTranscript(newPart);
+      }
+      currentUtterance = ''; // Reset for next utterance
+
+      // Check keywords
+      const lowerTranscript = transcript.toLowerCase();
+      keywords.forEach((keyword) => {
+        if (lowerTranscript.includes(keyword.toLowerCase())) {
+          onSpeechDetected(keyword, transcript);
+        }
+      });
+    }
   };
-  
+
+  recognition.onstart = () => {
+    console.log('Speech recognition started...');
+  };
+
+  recognition.onend = () => {
+    console.log('Speech recognition ended...');
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event);
+  };
+
+  const startRecognition = () => {
+    recognition.start();
+  };
+
+  const stopRecognition = () => {
+    recognition.stop();
+  };
+
+  return {
+    start: startRecognition,
+    stop: stopRecognition,
+  };
+};
