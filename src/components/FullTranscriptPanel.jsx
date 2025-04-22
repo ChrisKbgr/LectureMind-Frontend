@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../styles/MindMap.css';
+import styles from '../styles/MindMap.module.css';
 
 const FullTranscriptPanel = ({ fullTranscriptLog }) => {
   // Only keep the last 100 characters worth of words

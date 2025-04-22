@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../styles/MindMap.css';
+import styles from '../styles/MindMap.module.css';
 
 const DetectedPanel = ({ detectedWords }) => (
   <div className={styles.detectedPanel}>
@@ -7,7 +7,7 @@ const DetectedPanel = ({ detectedWords }) => (
     <ul className={styles.panelList}>
       {detectedWords.map((word, idx) => (
         <li 
-          key={word} // Changed from idx to word since words are now unique
+          key={word}
           className={styles.panelItem}
         >
           {word}

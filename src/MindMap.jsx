@@ -5,7 +5,8 @@ import KeywordInput from './components/KeywordInput';
 import NodeEditor from './components/NodeEditor';
 import DetectedPanel from './components/DetectedPanel';
 import FullTranscriptPanel from './components/FullTranscriptPanel';
-import './styles/MindMap.css';
+import styles from './styles/MindMap.module.css';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MindMap = () => {
   const containerRef = useRef(null);
@@ -13,12 +14,13 @@ const MindMap = () => {
   const recognitionRef = useRef(null);
   const selectedNodeRef = useRef(null);
 
-  const [nodeCount, setNodeCount] = useState(0); // Changed from 1 to 0
+  const [nodeCount, setNodeCount] = useState(0);
   const [selectedNode, setSelectedNode] = useState(null);
   const [labelInput, setLabelInput] = useState('');
   const [extraText, setExtraText] = useState('');
   const [nodeColor, setNodeColor] = useState('#4e91ff');
   const [isListening, setIsListening] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   const [keywords, setKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState('');
@@ -59,10 +61,10 @@ const MindMap = () => {
             'text-outline-color': '#5567aa',
             'font-size': 16,
             'padding': '15px',
-            'width': 'label',
-            'height': 'label',
+            'width': '120px', // Fixed width instead of 'label'
+            'height': '120px', // Fixed height instead of 'label'
             'text-wrap': 'wrap',
-            'text-max-width': 120,
+            'text-max-width': 100,
             'overlay-padding': '6px',
             'z-index': 10,
             'line-height': 1.2
@@ -151,7 +153,7 @@ const MindMap = () => {
     });
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (e.key === 'Delete') {
         const selected = cy.$(':selected');
         if (selected.length > 0) {
           selected.remove();
@@ -192,19 +194,66 @@ const MindMap = () => {
       const extra = extraText.trim();
       const newLabel = extra ? `${main}\n—— \n${extra}` : main;
 
+      // Convert rgb to hex if needed
+      const hexColor = nodeColor.startsWith('rgb') 
+        ? rgbToHex(nodeColor)
+        : nodeColor;
+
       selectedNode.data('label', newLabel);
       selectedNode.style({
-        'background-color': nodeColor,
-        'text-outline-color': nodeColor,
+        'background-color': hexColor,
+        'text-outline-color': hexColor,
       });
+    }
+  };
+
+  // Add this helper function
+  const rgbToHex = (rgb) => {
+    // Extract numbers from rgb string
+    const [r, g, b] = rgb.match(/\d+/g).map(Number);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
+  const generateAIDescription = async (word) => {
+    if (!word || isGeneratingAI) return;
+    
+    if (!process.env.REACT_APP_GEMINI_API_KEY) {
+      console.error('Gemini API key not found');
+      alert('Gemini API key not configured');
+      return;
+    }
+    
+    setIsGeneratingAI(true);
+    console.log('Generating description for:', word);
+    
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const prompt = `Generate two short, informative sentences about: ${word}. Keep it concise and factual.`;
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }]
+      });
+
+      const response = await result.response;
+      const text = response.text();
+      
+      console.log('Gemini Response:', text);
+      setExtraText(text);
+      updateNode();
+    } catch (error) {
+      console.error('Error generating description:', error);
+      alert('Failed to generate description: ' + error.message);
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
   useEffect(() => {
     const recognition = setupVoiceRecognition(
       (keyword, transcript) => {
-        if (keyword && keywords.length > 0) { // Only check keywords if we have any
-          // Check if any existing node already has this keyword as a label
+        if (keyword && keywords.length > 0) { 
           const existingNodes = cyRef.current.$('node');
           const keywordExists = existingNodes.some(node => 
             node.data('label').toLowerCase() === keyword.toLowerCase()
@@ -265,45 +314,54 @@ const MindMap = () => {
     nodeColor,
     setNodeColor,
     updateNode,
+    generateAIDescription,
+    isGeneratingAI  // Add this
   };
 
   return (
-    <div className="mindmap-container">
-      <div className="controls-container">
-        <div className="controls-section">
-          <div className="controls-left">
-            <KeywordInput
-              keywords={keywords}
-              newKeyword={newKeyword}
-              setNewKeyword={setNewKeyword}
-              setKeywords={setKeywords}
-            />
-          </div>
-          
-          <div className="action-buttons">
-            <button onClick={addNode} className="btn btn-add">➕ Add Node</button>
-            <button
-              onClick={() => {
-                if (isListening) {
-                  recognitionRef.current?.stop();
-                  setIsListening(false);
-                } else {
-                  recognitionRef.current?.start();
-                  setIsListening(true);
-                }
-              }}
-              className={`btn ${isListening ? 'btn-danger' : 'btn-success'}`}
-            >
-              {isListening ? '🛑 Stop Listening' : '🎙️ Start Voice'}
-            </button>
-          </div>
+    <div className={styles.mindmapContainer}>
+      <div className={styles.topSection}>
+        <div className={styles.keywordsContainer}>
+          <KeywordInput
+            keywords={keywords}
+            newKeyword={newKeyword}
+            setNewKeyword={setNewKeyword}
+            setKeywords={setKeywords}
+          />
         </div>
 
-        <DetectedPanel detectedWords={detectedWords} />
-        <FullTranscriptPanel fullTranscriptLog={fullTranscriptLog} />
+        {/* Action buttons container */}
+        <div className={styles.actionsContainer}>
+          <button onClick={addNode} className={`${styles.btn} ${styles.btnAdd}`}>
+            ➕ Add Node
+          </button>
+          <button
+            onClick={() => {
+              if (isListening) {
+                recognitionRef.current?.stop();
+                setIsListening(false);
+              } else {
+                recognitionRef.current?.start();
+                setIsListening(true);
+              }
+            }}
+            className={`${styles.btn} ${isListening ? styles.btnDanger : styles.btnSuccess}`}
+          >
+            {isListening ? '🛑 Stop Listening' : '🎙️ Start Voice'}
+          </button>
+        </div>
+
+        {/* Panels container */}
+        <div className={styles.panelsContainer}>
+          <DetectedPanel detectedWords={detectedWords} />
+          <FullTranscriptPanel fullTranscriptLog={fullTranscriptLog} />
+        </div>
       </div>
+
+      {/* Canvas */}
+      <div className={styles.mindmapCanvas} ref={containerRef} />
       
-      <div className="mindmap-canvas" ref={containerRef} />
+      {/* Node editor */}
       {selectedNode && <NodeEditor {...nodeEditorProps} />}
     </div>
   );
