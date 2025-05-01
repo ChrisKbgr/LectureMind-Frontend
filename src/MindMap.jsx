@@ -51,23 +51,24 @@ const MindMap = () => {
         {
           selector: 'node',
           style: {
-            'shape': 'ellipse',
-            'background-color': '#5567aa',
+            'shape': 'round-rectangle',
+            'background-color': '#4e91ff',
             'label': 'data(label)',
-            'text-valign': 'center',
-            'text-halign': 'center',
             'color': '#fff',
             'text-outline-width': 2,
-            'text-outline-color': '#5567aa',
-            'font-size': 16,
-            'padding': '15px',
-            'width': '120px', // Fixed width instead of 'label'
-            'height': '120px', // Fixed height instead of 'label'
+            'text-outline-color': '#4e91ff',
+            'font-size': 12, // Smaller font size
+            'width': '280px', // Much wider
+            'height': '100px', // Taller to fit content
+            'padding': '20px',
+            'text-valign': 'center',
+            'text-halign': 'center',
             'text-wrap': 'wrap',
-            'text-max-width': 100,
+            'text-max-width': 260, // Increased text width
             'overlay-padding': '6px',
-            'z-index': 10,
-            'line-height': 1.2
+            'border-radius': '12px', // Rounded corners
+            'text-margin-y': 0,
+            'line-height': 1.4 // Better line spacing for readability
           }
         },
         {
@@ -180,8 +181,8 @@ const MindMap = () => {
       group: 'nodes',
       data: { id, label },
       position: {
-        x: 120 + (nodeCount * 50) % 600,
-        y: 120 + (nodeCount * 40) % 400,
+        x: 200 + (nodeCount * 100) % 1000, // Wider spacing
+        y: 200 + (nodeCount * 80) % 600,   // Taller spacing
       },
     });
 
@@ -230,7 +231,7 @@ const MindMap = () => {
       const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-      const prompt = `Generate two short, informative sentences about: ${word}. Keep it concise and factual.`;
+      const prompt = `Generate two short, informative sentences about: ${word}. Keep it concise and factual. Only two sentences and nothing more.`;
       
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }]
