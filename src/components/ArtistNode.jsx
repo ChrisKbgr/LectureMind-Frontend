@@ -18,26 +18,24 @@ const ArtistNode = ({ artist, aiDescription }) => {
         justifyContent: 'space-between'
       }}
     >
-      {/* Artist Portrait */}
-      {artist.portrait && (
-        <Box sx={{ 
-          position: 'absolute', 
-          top: 8, 
-          right: 8, 
-          zIndex: 2 
-        }}>
-          <Avatar
-            src={artist.portrait}
-            alt={artist.name}
-            sx={{ 
-              width: 50, 
-              height: 50, 
-              border: '2px solid white',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-            }}
-          />
-        </Box>
-      )}
+      {/* Artist Portrait (always show, fallback to placeholder) */}
+      <Box sx={{ 
+        position: 'absolute', 
+        top: 8, 
+        right: 8, 
+        zIndex: 2 
+      }}>
+        <Avatar
+          src={artist.portrait || '/artists/placeholder.jpg'}
+          alt={artist.name}
+          sx={{ 
+            width: 50, 
+            height: 50, 
+            border: '2px solid white',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}
+        />
+      </Box>
 
       {/* Artist Name and Period */}
       <Box sx={{ mb: 1, pr: artist.portrait ? 6 : 0 }}>
@@ -62,15 +60,15 @@ const ArtistNode = ({ artist, aiDescription }) => {
         />
       </Box>
 
-      {/* AI Description */}
-      <Box sx={{ mb: 1, flex: 1, pr: artist.portrait ? 6 : 0 }}>
+      {/* Only show Additional Info as info */}
+      <Box sx={{ mb: 1, flex: 1, pr: 6 }}>
         <Typography variant="body2" sx={{ 
           fontSize: '0.75rem', 
           lineHeight: 1.4,
           textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
           opacity: 0.95
         }}>
-          {aiDescription || artist.bio}
+          {artist.additionalInfo || aiDescription || artist.bio}
         </Typography>
       </Box>
 

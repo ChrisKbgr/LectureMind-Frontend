@@ -222,32 +222,7 @@ const NodeEditor = ({
           </IconButton>
         </Box>
 
-        {/* Artist Information (if available) */}
-        {artistInfo && (
-          <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-              <Avatar
-                src={artistInfo.portrait}
-                alt={artistInfo.name}
-                sx={{ width: 45, height: 45, mr: 1.5, border: '2px solid #e0e0e0' }}
-              />
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                  {artistInfo.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {artistInfo.birth} - {artistInfo.death} • {artistInfo.period}
-                </Typography>
-              </Box>
-            </Box>
-            
-            <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.4, fontSize: '0.75rem' }}>
-              {artistInfo.bio}
-            </Typography>
-            
-            <Divider sx={{ my: 1.5 }} />
-          </>
-        )}
+  {/* Artist info removed; only use Additional Info field per requirement */}
 
         {/* Node Editor Fields */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

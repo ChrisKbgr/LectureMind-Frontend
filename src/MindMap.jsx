@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import cytoscape from 'cytoscape';
-import { setupVoiceRecognition } from './utils/voiceRecognition';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import KeywordInput from './components/KeywordInput';
 import NodeEditor from './components/NodeEditor';
 import DetectedPanel from './components/DetectedPanel';
@@ -30,15 +30,16 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 const MindMap = () => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
-  const recognitionRef = useRef(null);
+  // Removed recognitionRef, handled by react-speech-recognition
   const selectedNodeRef = useRef(null);
+  const pendingNodesRef = useRef(new Set());
 
   const [nodeCount, setNodeCount] = useState(0);
   const [selectedNode, setSelectedNode] = useState(null);
   const [labelInput, setLabelInput] = useState('');
   const [extraText, setExtraText] = useState('');
   const [nodeColor, setNodeColor] = useState('#4e91ff');
-  const [isListening, setIsListening] = useState(false);
+  // Remove isListening, use listening from useSpeechRecognition
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   const [keywords, setKeywords] = useState([]);
@@ -186,31 +187,8 @@ const MindMap = () => {
     cy.center();
     console.log('Set initial viewport');
 
-    // Handle artist node styling after creation
-    cy.on('add', 'node', function(event) {
-      const node = event.target;
-      const artistData = node.data('artistData');
-      
-      if (artistData) {
-        // Apply custom styling for artist nodes
-        node.style({
-          'background-color': '#4CAF50',
-          'border-color': '#2E7D32',
-          'border-width': 3,
-          'color': 'white',
-          'font-size': '14px',
-          'font-weight': 'bold',
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'width': 320,
-          'height': 240,
-          'shape': 'round-rectangle',
-          'padding': '15px',
-          'text-wrap': 'wrap',
-          'text-max-width': 290
-        });
-      }
-    });
+  // Removed style bypass handler to avoid conflicting style parse issues;
+  // artist nodes get styles set when created via createArtistNode
 
     cy.on('tap', (event) => {
       // If clicked outside nodes, deselect current node
@@ -254,7 +232,7 @@ const MindMap = () => {
         if (artistData) {
           // For artist nodes, show the artist data in the editor
           setLabelInput(artistData.name);
-          setExtraText(clickedNode.data('aiDescription') || artistData.bio);
+          setExtraText(clickedNode.data('additionalInfo') || '');
           setNodeColor('#4CAF50'); // Artist node color
         } else {
           // For regular nodes, use the existing logic
@@ -328,6 +306,22 @@ const MindMap = () => {
   // Enhanced node creation with artist information
   const createArtistNode = async (artist, position) => {
     const nodeId = artist.keyword;
+    // Prevent creating the same artist node twice (handle races)
+    if (cyRef.current.$id(nodeId).length > 0) {
+      return cyRef.current.$id(nodeId)[0];
+    }
+    if (pendingNodesRef.current.has(nodeId)) {
+      // another creation is in progress; wait for it to finish (timeout after 2s)
+      const start = Date.now();
+      while (Date.now() - start < 2000) {
+        const existing = cyRef.current.$id(nodeId);
+        if (existing.length > 0) return existing[0];
+        // small sleep
+        await new Promise(r => setTimeout(r, 50));
+      }
+      // timed out — continue and attempt to create, but this is unlikely
+    }
+    pendingNodesRef.current.add(nodeId);
     
     // Get artist data from database
     const artistData = artistDatabase[artist.keyword] || {
@@ -356,32 +350,125 @@ const MindMap = () => {
     const nodeLabel = `${artistData.name}\n${artistData.period}\n${artistData.birth}-${artistData.death}`;
 
     // Create the node with simplified styling (custom renderer will handle the visual)
-    const node = cyRef.current.add({
-      group: 'nodes',
-      data: {
-        id: nodeId,
-        label: nodeLabel,
-        artistData: artistData,
-        aiDescription: aiDescription
-      },
-      position: position,
-      style: {
-        'background-color': '#4CAF50',
-        'border-color': '#2E7D32',
-        'border-width': 3,
-        'color': 'white',
-        'font-size': '14px',
-        'font-weight': 'bold',
-        'text-valign': 'center',
-        'text-halign': 'center',
-        'width': 320,
-        'height': 240,
-        'shape': 'round-rectangle',
-        'padding': '15px',
-        'text-wrap': 'wrap',
-        'text-max-width': 290
+    let nodeStyle = {
+      'background-color': '#4CAF50',
+      'border-color': '#2E7D32',
+      'border-width': '3px',
+      'color': 'white',
+      'font-size': '14px',
+      'font-weight': 'bold',
+      'text-valign': 'bottom',
+      'text-halign': 'center',
+      'width': '320px',
+      'height': '240px',
+      'shape': 'round-rectangle',
+      'text-wrap': 'wrap',
+      'text-max-width': '290px'
+    };
+
+    if (artistData.portrait) {
+      nodeStyle['background-image'] = `url(${artistData.portrait})`;
+      nodeStyle['background-fit'] = 'cover';
+      // avoid background-image-opacity to keep style simple
+    }
+
+    // sanitize style: remove null/undefined and non-primitive values
+    const sanitizedNodeStyle = {};
+    Object.keys(nodeStyle).forEach((k) => {
+      const v = nodeStyle[k];
+      if (v !== null && v !== undefined && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) {
+        sanitizedNodeStyle[k] = v;
       }
     });
+    nodeStyle = sanitizedNodeStyle;
+
+    let node = null;
+    try {
+      node = cyRef.current.add({
+        group: 'nodes',
+        data: {
+          id: nodeId,
+          label: nodeLabel,
+          artistData: artistData,
+          additionalInfo: artistData.additionalInfo || '',
+          portrait: artistData.portrait || '',
+          worksImages: artistData.worksImages || [],
+          aiDescription: aiDescription
+        },
+        position: position,
+        style: nodeStyle
+      });
+    } catch (err) {
+      console.error('Failed to create artist node. artistData:', artistData, 'nodeStyle:', nodeStyle, err);
+      // If duplicate ID error occurred, return existing node
+      if (err && err.message && err.message.includes('Can not create second element')) {
+        const existing = cyRef.current.$id(nodeId);
+        if (existing.length > 0) {
+          pendingNodesRef.current.delete(nodeId);
+          return existing[0];
+        }
+      }
+      // Fallback: try adding the node without style to avoid Cytoscape parse errors
+      try {
+        node = cyRef.current.add({ group: 'nodes', data: { id: nodeId, label: nodeLabel, artistData }, position });
+      } catch (err2) {
+        console.error('Fallback add also failed for', nodeId, err2);
+        pendingNodesRef.current.delete(nodeId);
+        throw err2;
+      }
+    } finally {
+      // ensure pending flag removed if node created or failed
+      pendingNodesRef.current.delete(nodeId);
+    }
+
+    // Add small thumbnail nodes for the artist's famous works (up to 3)
+    if (artistData.worksImages && artistData.worksImages.length > 0) {
+      const thumbGap = 60;
+      const startX = position.x - thumbGap;
+      const startY = position.y + 120; // below the main node
+
+    artistData.worksImages.slice(0, 3).forEach((imgUrl, i) => {
+        try {
+          const thumbId = `${nodeId}-thumb-${i}`;
+      // skip thumbnail if already exists
+      if (cyRef.current.$id(thumbId).length > 0) return;
+          const thumbStyleRaw = {
+            'width': '60px',
+            'height': '44px',
+            'shape': 'round-rectangle',
+            'background-fit': 'cover',
+            'border-width': '1px',
+            'border-color': '#ffffff33'
+          };
+          if (imgUrl) {
+            thumbStyleRaw['background-image'] = `url(${imgUrl})`;
+          }
+          const thumbStyle = {};
+          Object.keys(thumbStyleRaw).forEach((k) => {
+            const v = thumbStyleRaw[k];
+            if (v !== null && v !== undefined && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) {
+              thumbStyle[k] = v;
+            }
+          });
+
+          const thumb = cyRef.current.add({
+            group: 'nodes',
+            data: { id: thumbId, label: '', parent: null },
+            position: { x: startX + i * thumbGap, y: startY },
+            selectable: false,
+            style: thumbStyle
+          });
+
+          // connect thumbnail to the main node (avoid duplicate edges)
+          const edgeId = `${nodeId}-edge-${i}`;
+          if (cyRef.current.$id(edgeId).length === 0) {
+            cyRef.current.add({ group: 'edges', data: { id: edgeId, source: node.id(), target: thumb.id() } });
+          }
+        } catch (err) {
+          console.warn('Failed to add thumbnail for', nodeId, err);
+        }
+      });
+    }
 
     return node;
   };
@@ -508,12 +595,12 @@ const MindMap = () => {
       birth: 1452,
       death: 1519,
       period: 'Renaissance',
-      portrait: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg',
+      portrait: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg',
       bio: 'Italian polymath of the Renaissance. Known for the Mona Lisa and The Last Supper.',
       famousWorks: ['Mona Lisa', 'The Last Supper', 'Vitruvian Man'],
       worksImages: [
         'https://upload.wikimedia.org/wikipedia/commons/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg',
-        'https://upload.wikimedia.org/wikipedia/commons/4/4b/Leonardo_da_Vinci_-_Last_Supper_-_WGA12732.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/0/08/Leonardo_da_Vinci_%281452-1519%29_-_The_Last_Supper_%281495-1498%29.jpg',
         'https://upload.wikimedia.org/wikipedia/commons/2/22/Da_Vinci_Vitruve_Luc_Viatour.jpg'
       ]
     },
@@ -673,114 +760,68 @@ const MindMap = () => {
     }
   };
 
-  // Restore original voice recognition
+  // --- New voice recognition using react-speech-recognition ---
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
   useEffect(() => {
-    console.log('Setting up voice recognition with keywords:', keywords);
-    
-    const recognition = setupVoiceRecognition(
-      async (keyword, transcript) => {
-        console.log('Keyword detected:', keyword, 'Transcript:', transcript);
-        console.log('Available keywords:', keywords);
-        
-        // Check if this is an artist keyword
-        const artistInfo = Object.values(artPeriods).flatMap(period => period.artists)
-          .find(artist => artist.keyword === keyword.toLowerCase() || 
-                         artist.name.toLowerCase().includes(keyword.toLowerCase()));
-        
-        console.log('Artist info found:', artistInfo);
-        
-        if (keyword) { 
-          const cy = cyRef.current;
-          if (!cy) {
-            console.error('Cytoscape instance not initialized (voice)');
-            return;
-          }
-          
-          const existingNodes = cy.$('node');
-          const keywordExists = existingNodes.some(node => {
-            const nodeLabel = node.data('label').toLowerCase();
-            const nodeId = node.id().toLowerCase();
-            return nodeLabel.includes(keyword.toLowerCase()) || 
-                   nodeId.includes(keyword.toLowerCase()) ||
-                   (artistInfo && nodeId === artistInfo.keyword);
-          });
-
-          console.log('Keyword exists:', keywordExists);
-
-          if (!keywordExists) {
-            const position = {
-              x: 100 + Math.random() * 300,
-              y: 100 + Math.random() * 300,
-            };
-            
-            let createdNodeId = null;
-            
-            if (artistInfo) {
+    if (!browserSupportsSpeechRecognition) {
+      alert('Your browser does not support speech recognition.');
+      return;
+    }
+    if (listening && transcript) {
+      // When transcript updates, check for keywords
+      const lowerTranscript = transcript.toLowerCase();
+      keywords.forEach(async (keyword) => {
+        if (lowerTranscript.includes(keyword.toLowerCase())) {
+          // Simulate keyword detection logic
+          const artistInfo = Object.values(artPeriods).flatMap(period => period.artists)
+            .find(artist => artist.keyword === keyword.toLowerCase() || 
+                           artist.name.toLowerCase().includes(keyword.toLowerCase()));
+          if (artistInfo) {
+            const cy = cyRef.current;
+            if (!cy) return;
+            const existingNodes = cy.$('node');
+            const keywordExists = existingNodes.some(node => {
+              const nodeLabel = node.data('label').toLowerCase();
+              const nodeId = node.id().toLowerCase();
+              return nodeLabel.includes(keyword.toLowerCase()) || 
+                     nodeId.includes(keyword.toLowerCase()) ||
+                     (artistInfo && nodeId === artistInfo.keyword);
+            });
+            if (!keywordExists) {
+              const position = {
+                x: 100 + Math.random() * 300,
+                y: 100 + Math.random() * 300,
+              };
+              let createdNodeId = null;
               // Create enhanced artist node
-              console.log('Creating artist node for:', artistInfo.name);
               const node = await createArtistNode(artistInfo, position);
               createdNodeId = node.id();
-            } else {
-              // Create regular node
-              const timestamp = Date.now();
-              const random = Math.floor(Math.random() * 1000);
-              const id = `node-${keyword.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${random}`;
-              const label = keyword.charAt(0).toUpperCase() + keyword.slice(1);
-              console.log('Adding regular node from keyword:', id, label);
-              
-              const node = cy.add({
-                group: 'nodes',
-                data: {
-                  id, 
-                  label
-                },
-                position: position,
-                style: {
-                  'background-color': '#ff6b35',
-                  'text-outline-color': '#ff6b35',
-                  'width': '200px',
-                  'height': '80px'
-                }
-              });
-              createdNodeId = node.id();
-            }
-
-            if (selectedNodeRef.current && createdNodeId) {
-              cy.add({
-                group: 'edges',
-                data: { source: selectedNodeRef.current.id(), target: createdNodeId }
-              });
-            }
-
-            setNodeCount(n => n + 1);
-            
-            // Update detected words - use the actual keyword that was detected
-            const keywordToAdd = artistInfo ? artistInfo.keyword : keyword;
-            console.log('Adding to detected words:', keywordToAdd);
-            setDetectedWords(prev => {
-              console.log('Previous detected words:', prev);
-              if (!prev.includes(keywordToAdd)) {
-                const newDetectedWords = [...prev.slice(-9), keywordToAdd];
-                console.log('New detected words:', newDetectedWords);
-                return newDetectedWords;
+              if (selectedNodeRef.current && createdNodeId) {
+                cy.add({
+                  group: 'edges',
+                  data: { source: selectedNodeRef.current.id(), target: createdNodeId }
+                });
               }
-              return prev;
-            });
+              setNodeCount(n => n + 1);
+              setDetectedWords(prev => {
+                if (!prev.includes(keyword)) {
+                  return [...prev.slice(-9), keyword];
+                }
+                return prev;
+              });
+            }
           }
         }
-      },
-      (transcript) => {
-        console.log('Transcript received:', transcript);
-        addUniqueTranscript(transcript);
-      },
-      keywords
-    );
-
-    console.log('Voice recognition setup result:', recognition);
-    recognitionRef.current = recognition;
-
-    return () => recognition && recognition.stop();
-  }, [keywords]);
+      });
+  addUniqueTranscript(transcript);
+    }
+  }, [transcript, listening, keywords]);
 
   const nodeEditorProps = {
     labelInput,
@@ -852,17 +893,10 @@ const MindMap = () => {
   };
 
   const toggleListening = () => {
-    console.log('Toggle listening called, current state:', isListening);
-    console.log('Recognition ref:', recognitionRef.current);
-    
-    if (isListening) {
-      console.log('Stopping recognition...');
-      recognitionRef.current?.stop();
-      setIsListening(false);
+    if (listening) {
+      SpeechRecognition.stopListening();
     } else {
-      console.log('Starting recognition...');
-      recognitionRef.current?.start();
-      setIsListening(true);
+      SpeechRecognition.startListening({ continuous: true, language: 'en-US' });
     }
   };
 
@@ -876,6 +910,14 @@ const MindMap = () => {
             LectureMind
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
+          {listening && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+              <MicIcon color="error" sx={{ mr: 0.5, fontSize: 18 }} />
+              <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                Listening...
+              </Typography>
+            </Box>
+          )}
           <Button
             variant="contained"
             color="primary"
@@ -909,19 +951,19 @@ const MindMap = () => {
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
                 <Button
-                  variant={isListening ? "contained" : "outlined"}
-                  color={isListening ? "error" : "primary"}
+                  variant={listening ? "contained" : "outlined"}
+                  color={listening ? "error" : "primary"}
                   size="small"
-                  startIcon={isListening ? <StopIcon /> : <MicIcon />}
+                  startIcon={listening ? <StopIcon /> : <MicIcon />}
                   onClick={toggleListening}
                   sx={{ fontSize: '0.7rem', py: 0.5 }}
                   fullWidth
                 >
-                  {isListening ? 'Stop' : 'Start Listening'}
+                  {listening ? 'Stop' : 'Start Listening'}
                 </Button>
               </Box>
               <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                {isListening ? 'Listening for keywords...' : 'Click to start voice recognition'}
+                {listening ? 'Listening for keywords...' : 'Click to start voice recognition'}
               </Typography>
             </Paper>
 
