@@ -1,12 +1,7 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import cytoscape from 'cytoscape';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import KeywordInput from './components/KeywordInput';
 import NodeEditor from './components/NodeEditor';
-import DetectedPanel from './components/DetectedPanel';
-import FullTranscriptPanel from './components/FullTranscriptPanel';
-import ArtistNode from './components/ArtistNode';
-import styles from './styles/MindMap.module.css';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Timeline from './components/Timeline';
 // Material UI imports
@@ -14,7 +9,6 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -852,25 +846,8 @@ const MindMap = () => {
     }
   }, [transcript, listening, keywords]);
 
-  const nodeEditorProps = {
-    labelInput,
-    setLabelInput,
-    extraText,
-    setExtraText,
-    nodeColor,
-    setNodeColor,
-    updateNode,
-    generateAIDescription,
-    isGeneratingAI,
-    selectedNode,
-    onClose: () => {
-      if (selectedNodeRef.current) {
-        selectedNodeRef.current.unselect();
-        selectedNodeRef.current = null;
-      }
-      setSelectedNode(null);
-    }
-  };
+  // nodeEditorProps was previously built for convenience but is not used directly;
+  // we pass props to <NodeEditor /> inline where needed.
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
