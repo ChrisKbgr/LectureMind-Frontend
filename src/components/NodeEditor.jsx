@@ -23,8 +23,7 @@ const NodeEditor = ({
   const nodeData = selectedNode.data();
   const nodeId = nodeData.id;
   
-  // Check if this is an artist node
-  const artistInfo = artistDatabase[nodeId.toLowerCase()];
+  // Artist info is handled in MindMap and passed via node data when needed.
 
   // Convert RGB to Hex for color picker
   const rgbToHex = (rgb) => {
