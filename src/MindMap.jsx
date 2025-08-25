@@ -366,11 +366,8 @@ const MindMap = () => {
       'text-max-width': '290px'
     };
 
-    if (artistData.portrait) {
-      nodeStyle['background-image'] = `url(${artistData.portrait})`;
-      nodeStyle['background-fit'] = 'cover';
-      // avoid background-image-opacity to keep style simple
-    }
+  // Do not set background-image here to avoid blocking Cytoscape parsing.
+  // We'll lazy-load the portrait after the node is created.
 
     // sanitize style: remove null/undefined and non-primitive values
     const sanitizedNodeStyle = {};
@@ -398,6 +395,20 @@ const MindMap = () => {
         position: position,
         style: nodeStyle
       });
+      // Lazy-load portrait image to improve initial render performance
+      if (artistData.portrait) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = artistData.portrait;
+        img.onload = () => {
+          try {
+            node.style({ 'background-image': `url(${artistData.portrait})`, 'background-fit': 'cover' });
+          } catch (e) {
+            console.warn('Failed to apply portrait style for', nodeId, e);
+          }
+        };
+        img.onerror = () => console.warn('Portrait failed to load for', nodeId, artistData.portrait);
+      }
     } catch (err) {
       console.error('Failed to create artist node. artistData:', artistData, 'nodeStyle:', nodeStyle, err);
       // If duplicate ID error occurred, return existing node
@@ -438,11 +449,13 @@ const MindMap = () => {
             'shape': 'round-rectangle',
             'background-fit': 'cover',
             'border-width': '1px',
-            'border-color': '#ffffff33'
+            'border-color': '#ffffff33',
+            'font-size': '10px',
+            'text-valign': 'bottom',
+            'text-halign': 'center',
+            'text-wrap': 'wrap',
+            'text-max-width': '60px'
           };
-          if (imgUrl) {
-            thumbStyleRaw['background-image'] = `url(${imgUrl})`;
-          }
           const thumbStyle = {};
           Object.keys(thumbStyleRaw).forEach((k) => {
             const v = thumbStyleRaw[k];
@@ -451,13 +464,29 @@ const MindMap = () => {
             }
           });
 
+          const thumbLabel = (artistData.famousWorks && artistData.famousWorks[i]) ? artistData.famousWorks[i] : '';
           const thumb = cyRef.current.add({
             group: 'nodes',
-            data: { id: thumbId, label: '', parent: null },
+            data: { id: thumbId, label: thumbLabel, parent: null },
             position: { x: startX + i * thumbGap, y: startY },
             selectable: false,
             style: thumbStyle
           });
+
+          // Lazy-load thumbnail image
+          if (imgUrl) {
+            const timg = new Image();
+            timg.crossOrigin = 'anonymous';
+            timg.src = imgUrl;
+            timg.onload = () => {
+              try {
+                thumb.style({ 'background-image': `url(${imgUrl})` });
+              } catch (e) {
+                console.warn('Failed to apply thumbnail image for', thumbId, e);
+              }
+            };
+            timg.onerror = () => console.warn('Thumbnail failed to load for', thumbId, imgUrl);
+          }
 
           // connect thumbnail to the main node (avoid duplicate edges)
           const edgeId = `${nodeId}-edge-${i}`;
@@ -854,6 +883,53 @@ const MindMap = () => {
     setKeywords(keywords.filter((_, i) => i !== index));
   };
 
+  // Helper: simulate detection when a keyword chip is clicked
+  const handleKeywordClick = async (keyword) => {
+    if (!keyword) return;
+    const lower = keyword.toLowerCase();
+    const artistInfo = Object.values(artPeriods).flatMap(period => period.artists)
+      .find(artist => artist.keyword === lower || artist.name.toLowerCase().includes(lower));
+
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    const existingNodes = cy.$('node');
+    const keywordExists = existingNodes.some(node => {
+      const nodeLabel = (node.data('label') || '').toLowerCase();
+      const nodeId = (node.id() || '').toLowerCase();
+      return nodeLabel.includes(lower) || nodeId.includes(lower) || (artistInfo && nodeId === artistInfo.keyword);
+    });
+
+    if (!keywordExists) {
+      const position = { x: 100 + Math.random() * 300, y: 100 + Math.random() * 300 };
+      try {
+        if (artistInfo) {
+          const node = await createArtistNode(artistInfo, position);
+          if (selectedNodeRef.current && node && node.id) {
+            cy.add({ group: 'edges', data: { source: selectedNodeRef.current.id(), target: node.id() } });
+          }
+        } else {
+          const nodeId = `node-sim-${Date.now()}`;
+          cy.add({ group: 'nodes', data: { id: nodeId, label: keyword }, position });
+        }
+
+        setNodeCount(n => n + 1);
+        setDetectedWords(prev => {
+          if (!prev.includes(keyword)) return [...prev.slice(-9), keyword];
+          return prev;
+        });
+      } catch (err) {
+        console.error('handleKeywordClick failed for', keyword, err);
+      }
+    } else {
+      // If node already exists, still add to detected list to make it visible
+      setDetectedWords(prev => {
+        if (!prev.includes(keyword)) return [...prev.slice(-9), keyword];
+        return prev;
+      });
+    }
+  };
+
   // Handle period selection
   const handlePeriodChange = (event, newPeriod) => {
     setSelectedPeriod(newPeriod);
@@ -1000,7 +1076,8 @@ const MindMap = () => {
                     label={keyword}
                     size="small"
                     onDelete={() => removeKeyword(index)}
-                    sx={{ fontSize: '0.65rem', height: 24 }}
+                    onClick={() => handleKeywordClick(keyword)}
+                    sx={{ fontSize: '0.65rem', height: 24, cursor: 'pointer' }}
                   />
                 ))}
               </Box>
