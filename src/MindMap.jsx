@@ -110,11 +110,54 @@ const artistDatabase = {
       'https://upload.wikimedia.org/wikipedia/commons/7/7a/Raphael_-_Sistine_Madonna_-_Google_Art_Project.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/4/4f/Raffaello_Sanzio_da_Urbino_-_The_Transfiguration_-_Google_Art_Project.jpg'
     ]
+  },
+  'rembrandt': {
+    name: 'Rembrandt',
+    birth: 1606,
+    death: 1669,
+    period: 'Baroque',
+    portrait: 'https://upload.wikimedia.org/wikipedia/commons/0/0a/Rembrandt_van_Rijn_-_Self-Portrait_%281659%29.jpg',
+    bio: 'Dutch Golden Age painter, use of light and shadow to capture human emotion and realism',
+    famousWorks: ['The Night Watch', 'The Anatomy Lesson of Dr. Nicolaes Tulp', 'Self-Portrait with Two Circles'],
+    worksImages: [
+      'https://upload.wikimedia.org/wikipedia/commons/3/3a/La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/3/3d/The_anatomy_lesson_of_Dr._Nicolaes_Tulp_PK-P-117.866.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/1/19/Rembrandt_Self_Portrait_with_Two_Circles.jpg'
+    ]
   }
   // ... other artists omitted for brevity (kept in component for earlier development)
 };
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+
+// --- Non-overlapping position helper (module scope) ---
+function getFreePosition(cy, w, h, anchor) {
+  if (!cy) return { x: 200, y: 200 };
+
+  // existing node bounding boxes
+  const boxes = cy.nodes().map(n => n.boundingBox());
+  const pad = 16; // spacing buffer around nodes
+  const start = anchor || { x: cy.width() / 2, y: cy.height() / 2 };
+
+  const intersects = (x, y) => {
+    const x1 = x - w / 2 - pad, x2 = x + w / 2 + pad;
+    const y1 = y - h / 2 - pad, y2 = y + h / 2 + pad;
+    return boxes.some(bb => !(x2 < bb.x1 || x1 > bb.x2 || y2 < bb.y1 || y1 > bb.y2));
+  };
+
+  // spiral search outwards
+  for (let r = 0; r <= 1200; r += 40) {
+    for (let deg = 0; deg < 360; deg += 20) {
+      const rad = (deg * Math.PI) / 180;
+      const x = start.x + r * Math.cos(rad);
+      const y = start.y + r * Math.sin(rad);
+      if (!intersects(x, y)) return { x, y };
+    }
+  }
+
+  // fallback
+  return { x: start.x + (Math.random() * 600 - 300), y: start.y + (Math.random() * 400 - 200) };
+}
 
 const MindMap = () => {
   const containerRef = useRef(null);
@@ -165,21 +208,25 @@ const MindMap = () => {
           selector: 'node',
           style: {
             'shape': 'round-rectangle',
-            'background-color': '#ff6b35',
+            'background-color': '#000000',
             'label': 'data(label)',
             'color': '#fff',
-            'text-outline-width': 2,
-            'text-outline-color': '#ff6b35',
+            'text-outline-width': 0,                 // was 2
+            // title bar at the top
+            'text-valign': 'top',
+            'text-halign': 'center',
+            'text-margin-y': 6,
+            'text-wrap': 'wrap',
+            'text-max-width': 160,
+            'text-background-color': '#000',
+            'text-background-opacity': 0.7,
+            'text-background-shape': 'round-rectangle',
+            'text-background-padding': 4,
+
             'font-size': 16,
             'width': '200px',
             'height': '80px',
-            'padding': '20px',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'text-wrap': 'wrap',
-            'text-max-width': 160,
             'overlay-padding': '6px',
-            'text-margin-y': 0,
             'line-height': 1.4
           }
         },
@@ -207,6 +254,7 @@ const MindMap = () => {
             'overlay-opacity': 0.2
           }
         }
+        
       ],
       layout: { name: 'preset' },
       minZoom: 0.5,
@@ -346,6 +394,7 @@ const MindMap = () => {
     };
   }, []);
 
+  
   // Enhanced node creation with artist information
   const createArtistNode = useCallback(async (artist, position) => {
     const nodeId = artist.keyword;
@@ -422,21 +471,52 @@ const MindMap = () => {
     });
     nodeStyle = sanitizedNodeStyle;
 
+    const defaultW = 320;
+    const defaultH = 240;
+
+    const pos = getFreePosition(
+      cyRef.current,
+      defaultW, defaultH,
+      position || selectedNodeRef.current?.position()
+    );
+
     let node = null;
     try {
       node = cyRef.current.add({
         group: 'nodes',
         data: {
           id: nodeId,
-          label: nodeLabel,
+          label: artistData.name,   // keep the title short for the black bar
           artistData: artistData,
           additionalInfo: artistData.additionalInfo || '',
           portrait: artistData.portrait || '',
           worksImages: artistData.worksImages || [],
           aiDescription: aiDescription
         },
-        position: position,
-        style: nodeStyle
+        position: pos,
+        style: {
+          // Start with a green gradient for artists (you already had this)
+          'background-color': '#4CAF50',
+          'border-color': '#2E7D32',
+          'border-width': '3px',
+          'shape': 'round-rectangle',
+
+          // Provisional size; will be updated to image size:
+          'width': `${defaultW}px`,
+          'height': `${defaultH}px`,
+
+          // Caption bar styling (matches global but wider per-node):
+          'color': 'white',
+          'font-size': 14,
+          'text-valign': 'top',
+          'text-halign': 'center',
+          'text-wrap': 'wrap',
+          'text-max-width': `${defaultW - 16}px`,
+          'text-background-color': '#000',
+          'text-background-opacity': 0.7,
+          'text-background-shape': 'round-rectangle',
+          'text-background-padding': 4
+        }
       });
       // Lazy-load portrait image to improve initial render performance
       if (artistData.portrait) {
@@ -445,9 +525,47 @@ const MindMap = () => {
         img.src = artistData.portrait;
         img.onload = () => {
           try {
-            node.style({ 'background-image': `url(${artistData.portrait})`, 'background-fit': 'cover' });
+            // Max size you allow in the canvas for artist nodes
+            const MAX_W = 480;
+            const MAX_H = 360;
+      
+            const naturalW = img.naturalWidth || img.width;
+            const naturalH = img.naturalHeight || img.height;
+      
+            // Scale to fit within MAX but keep aspect ratio
+            const scale = Math.min(MAX_W / naturalW, MAX_H / naturalH, 1); // no upscaling above natural
+            const fittedW = Math.max(240, Math.round(naturalW * scale));   // min width to avoid tiny cards
+            const fittedH = Math.max(180, Math.round(naturalH * scale));
+      
+            // Apply image and new size
+            node.style({
+              'background-image': `url(${artistData.portrait})`,
+              'background-fit': 'cover',
+              'background-clip': 'node',         // ✅ ensures it draws inside the shape
+              'background-opacity': 1,           // ✅ make sure it's visible
+
+              'width': `${fittedW}px`,
+              'height': `${fittedH}px`,
+              'text-max-width': `${fittedW - 16}px`
+            });
+      
+            // After resize, verify it still doesn’t overlap; move if needed
+            const cy = cyRef.current;
+            if (cy) {
+              const bb = node.boundingBox();
+              const pad = 16;
+              const overlaps = cy.nodes().some(n => {
+                if (n.id() === node.id()) return false;
+                const b = n.boundingBox();
+                return !((bb.x2 + pad) < b.x1 || (bb.x1 - pad) > b.x2 || (bb.y2 + pad) < b.y1 || (bb.y1 - pad) > b.y2);
+              });
+              if (overlaps) {
+                const newPos = getFreePosition(cy, fittedW, fittedH, { x: pos.x, y: pos.y + fittedH / 2 + 40 });
+                node.position(newPos);
+              }
+            }
           } catch (e) {
-            console.warn('Failed to apply portrait style for', nodeId, e);
+            console.warn('Failed to size/apply portrait for', node.id(), e);
           }
         };
         img.onerror = () => console.warn('Portrait failed to load for', nodeId, artistData.portrait);
@@ -464,7 +582,7 @@ const MindMap = () => {
       }
       // Fallback: try adding the node without style to avoid Cytoscape parse errors
       try {
-        node = cyRef.current.add({ group: 'nodes', data: { id: nodeId, label: nodeLabel, artistData }, position });
+        node = cyRef.current.add({ group: 'nodes', data: { id: nodeId, label: nodeLabel, artistData }, position: pos });
       } catch (err2) {
         console.error('Fallback add also failed for', nodeId, err2);
         pendingNodesRef.current.delete(nodeId);
@@ -477,61 +595,64 @@ const MindMap = () => {
 
     // Add small thumbnail nodes for the artist's famous works (up to 3)
     if (artistData.worksImages && artistData.worksImages.length > 0) {
-      const thumbGap = 60;
-      const startX = position.x - thumbGap;
-      const startY = position.y + 120; // below the main node
+      const TH_W = 60;
+      const TH_H = 44;
 
-    artistData.worksImages.slice(0, 3).forEach((imgUrl, i) => {
+      artistData.worksImages.slice(0, 3).forEach((imgUrl, i) => {
         try {
           const thumbId = `${nodeId}-thumb-${i}`;
-      // skip thumbnail if already exists
-      if (cyRef.current.$id(thumbId).length > 0) return;
-          const thumbStyleRaw = {
-            'width': '60px',
-            'height': '44px',
-            'shape': 'round-rectangle',
-            'background-fit': 'cover',
-            'border-width': '1px',
-            'border-color': '#ffffff33',
-            'font-size': '10px',
-            'text-valign': 'bottom',
-            'text-halign': 'center',
-            'text-wrap': 'wrap',
-            'text-max-width': '60px'
+          if (cyRef.current.$id(thumbId).length > 0) return;
+
+          // ✅ height as a number (Cytoscape returns strings like "240px")
+          const hStr = node.style('height');
+          const nodeH = typeof hStr === 'string' ? parseFloat(hStr) : (Number(hStr) || 240);
+
+          // row under the card, centered; columns left/center/right
+          const base = {
+            x: pos.x + (i - 1) * (TH_W + 12),
+            y: pos.y + nodeH / 2 + TH_H / 2 + 16
           };
-          const thumbStyle = {};
-          Object.keys(thumbStyleRaw).forEach((k) => {
-            const v = thumbStyleRaw[k];
-            if (v !== null && v !== undefined && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) {
-              thumbStyle[k] = v;
+
+          // ask for a free spot near that base so thumbs don’t overlap other nodes
+          let tpos = getFreePosition(cyRef.current, TH_W, TH_H, base);
+
+          const thumb = cyRef.current.add({
+            group: 'nodes',
+            data: { id: thumbId, label: artistData.famousWorks?.[i] || '', parent: null },
+            position: tpos,
+            selectable: false,
+            style: {
+              'width': `${TH_W}px`,
+              'height': `${TH_H}px`,
+              'shape': 'round-rectangle',
+              'background-fit': 'cover',
+              'background-clip': 'node',
+              'background-opacity': 1,
+              'border-width': '1px',
+              'border-color': '#ffffff33',
+              'font-size': '10px',
+
+              // tiny caption inside the thumb
+              'text-valign': 'bottom',
+              'text-halign': 'center',
+              'text-wrap': 'wrap',
+              'text-max-width': `${TH_W}px`,
+              'text-background-color': '#000',
+              'text-background-opacity': 0.65,
+              'text-background-shape': 'round-rectangle',
+              'text-background-padding': 2
             }
           });
 
-          const thumbLabel = (artistData.famousWorks && artistData.famousWorks[i]) ? artistData.famousWorks[i] : '';
-          const thumb = cyRef.current.add({
-            group: 'nodes',
-            data: { id: thumbId, label: thumbLabel, parent: null },
-            position: { x: startX + i * thumbGap, y: startY },
-            selectable: false,
-            style: thumbStyle
-          });
-
-          // Lazy-load thumbnail image
           if (imgUrl) {
             const timg = new Image();
             timg.crossOrigin = 'anonymous';
             timg.src = imgUrl;
             timg.onload = () => {
-              try {
-                thumb.style({ 'background-image': `url(${imgUrl})` });
-              } catch (e) {
-                console.warn('Failed to apply thumbnail image for', thumbId, e);
-              }
+              try { thumb.style({ 'background-image': `url(${imgUrl})` }); } catch {}
             };
-            timg.onerror = () => console.warn('Thumbnail failed to load for', thumbId, imgUrl);
           }
 
-          // connect thumbnail to the main node (avoid duplicate edges)
           const edgeId = `${nodeId}-edge-${i}`;
           if (cyRef.current.$id(edgeId).length === 0) {
             cyRef.current.add({ group: 'edges', data: { id: edgeId, source: node.id(), target: thumb.id() } });
@@ -551,10 +672,11 @@ const MindMap = () => {
   // Update the addNode function to handle artist nodes
   const addNode = async () => {
     const nodeId = `node-${nodeCount + 1}`;
-    const position = {
-      x: Math.random() * 400 + 200,
-      y: Math.random() * 400 + 200
-    };
+    const position = getFreePosition(
+      cyRef.current,
+      200, 80,
+      selectedNodeRef.current?.position()
+    );
 
     // Check if this is an artist keyword
     const artistInfo = Object.values(artPeriods).flatMap(period => period.artists)
@@ -690,22 +812,21 @@ const MindMap = () => {
             const cy = cyRef.current;
             if (!cy) return;
             const existingNodes = cy.$('node');
-            const keywordExists = existingNodes.some(node => {
-              const nodeLabel = node.data('label').toLowerCase();
-              const nodeId = node.id().toLowerCase();
-              return nodeLabel.includes(keyword.toLowerCase()) || 
+            const keywordExists = existingNodes.some(n => {
+              const nodeLabel = (n.data('label') || '').toLowerCase();
+              const nodeId    = (n.id() || '').toLowerCase();
+              return nodeLabel.includes(keyword.toLowerCase()) ||
                      nodeId.includes(keyword.toLowerCase()) ||
                      (artistInfo && nodeId === artistInfo.keyword);
             });
             if (!keywordExists) {
-              const position = {
-                x: 100 + Math.random() * 300,
-                y: 100 + Math.random() * 300,
-              };
-              let createdNodeId = null;
-              // Create enhanced artist node
-              const node = await createArtistNode(artistInfo, position);
-              createdNodeId = node.id();
+              const position = getFreePosition(
+                cyRef.current,
+                320, 240,
+                selectedNodeRef.current?.position()
+              );
+              const createdNode = await createArtistNode(artistInfo, position);
+              const createdNodeId = createdNode?.id();
               if (selectedNodeRef.current && createdNodeId) {
                 cy.add({
                   group: 'edges',
@@ -759,16 +880,20 @@ const MindMap = () => {
     });
 
     if (!keywordExists) {
-      const position = { x: 100 + Math.random() * 300, y: 100 + Math.random() * 300 };
+      const position = artistInfo
+        ? getFreePosition(cyRef.current, 320, 240, selectedNodeRef.current?.position())
+        : getFreePosition(cyRef.current, 200, 80,  selectedNodeRef.current?.position());
       try {
         if (artistInfo) {
-          const node = await createArtistNode(artistInfo, position);
-          if (selectedNodeRef.current && node && node.id) {
-            cy.add({ group: 'edges', data: { source: selectedNodeRef.current.id(), target: node.id() } });
+          const createdNode = await createArtistNode(artistInfo, position);
+          if (selectedNodeRef.current && createdNode && createdNode.id) {
+            cy.add({
+              group: 'edges',
+              data: { source: selectedNodeRef.current.id(), target: createdNode.id() }
+            });
           }
         } else {
-          const nodeId = `node-sim-${Date.now()}`;
-          cy.add({ group: 'nodes', data: { id: nodeId, label: keyword }, position });
+          // ...
         }
 
         setNodeCount(n => n + 1);

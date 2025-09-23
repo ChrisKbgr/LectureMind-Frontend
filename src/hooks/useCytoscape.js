@@ -41,23 +41,28 @@ const useCytoscape = ({ onNodeSelect, onNodeUnselect }) => {
         {
           selector: 'node',
           style: {
-            'shape': 'ellipse',
-            'background-color': '#5567aa',
+            'shape': 'round-rectangle',
+            'background-color': '#ff6b35',
             'label': 'data(label)',
-            'text-valign': 'center',
-            'text-halign': 'center',
             'color': '#fff',
-            'text-outline-width': 2,
-            'text-outline-color': '#5567aa',
-            'font-size': 16,
-            'padding': '15px',
-            'width': 'label',
-            'height': 'label',
+            'text-outline-width': 0,
+
+            // ▼ keep text inside the node in a small black bar
+            'text-valign': 'top',
+            'text-halign': 'center',
+            'text-margin-y': 6,
             'text-wrap': 'wrap',
-            'text-max-width': 120,
+            'text-max-width': 160,   // we will override per-node for artist width later
+            'text-background-color': '#000',
+            'text-background-opacity': 0.7,
+            'text-background-shape': 'round-rectangle',
+            'text-background-padding': 4,
+
+            'font-size': 16,
+            'width': '200px',
+            'height': '80px',
             'overlay-padding': '6px',
-            'z-index': 10,
-            'line-height': 1.2,
+            'line-height': 1.4,
           },
         },
         {
@@ -77,6 +82,32 @@ const useCytoscape = ({ onNodeSelect, onNodeUnselect }) => {
         {
           selector: 'edge:selected',
           style: { 'overlay-color': '#888', 'overlay-opacity': 0.2 },
+        },
+        {
+          selector: 'node.painting',
+          style: {
+            shape: 'round-rectangle',
+            width: 'data(w)',            // from node data
+            height: 'data(h)',
+
+            'background-image': 'data(image)',
+            'background-fit': 'cover',   // or 'contain' if you want no cropping
+            'background-clip': 'node',
+            'background-opacity': 1,
+
+            'border-width': 2,
+            'border-color': '#333',
+
+            label: 'data(label)',
+            'font-size': 12,
+            color: '#000',                // black text
+            'text-outline-width': 0,
+            'text-wrap': 'wrap',
+            'text-max-width': 'data(w)',
+            'text-halign': 'center',
+            'text-valign': 'top',
+            'text-margin-y': -8          // pushes text above the node
+          }
         },
       ],
       layout: { name: 'grid', rows: 1 },
