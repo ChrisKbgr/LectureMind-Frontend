@@ -546,7 +546,17 @@ const MindMap = () => {
     }
     if (!node) return;
 
-    const nodeId = node.id ? node.id() : (node.id && node.id) || node.data && node.data('id');
+    // Resolve nodeId safely: handle Cytoscape node objects (node.id()) or plain objects
+    let nodeId = null;
+    if (node) {
+      if (typeof node.id === 'function') {
+        nodeId = node.id();
+      } else if (node.data && typeof node.data === 'function') {
+        nodeId = node.data('id');
+      } else if (node.id) {
+        nodeId = node.id;
+      }
+    }
     try {
       // Remove node; 'remove' event handler will update detectedWords
       node.remove ? node.remove() : cy.$id(nodeId).remove();
