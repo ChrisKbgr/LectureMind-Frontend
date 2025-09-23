@@ -8,6 +8,7 @@ import CloseIcon from '@mui/icons-material/Close';
 const NodeEditor = ({ 
   selectedNode, 
   onClose,
+  onDelete,
   labelInput,
   setLabelInput,
   extraText,
@@ -124,6 +125,15 @@ const NodeEditor = ({
             sx={{ mt: 1, py: 0.5, fontSize: '0.75rem' }}
           >
             💾 Update Node
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => onDelete && onDelete(selectedNode)}
+            fullWidth
+            sx={{ mt: 1, py: 0.5, fontSize: '0.75rem' }}
+          >
+            🗑️ Delete Node
           </Button>
         </Box>
       </Box>
