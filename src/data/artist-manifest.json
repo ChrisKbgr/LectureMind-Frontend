@@ -1,0 +1,178 @@
+{
+  "bernini": {
+    "portrait": "/artists/bernini/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/bernini/works/Apollo and Daphne.jpg",
+      "/artists/bernini/works/David.jpg",
+      "/artists/bernini/works/Ecstasy of Saint Teresa.jpg"
+    ]
+  },
+  "botticelli": {
+    "portrait": "/artists/botticelli/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/botticelli/works/Adoration of the Magi.jpg",
+      "/artists/botticelli/works/Primavera.jpg",
+      "/artists/botticelli/works/The Birth of Venus.jpg"
+    ]
+  },
+  "caravaggio": {
+    "portrait": "/artists/caravaggio/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/caravaggio/works/Judith Beheading Holofernes.jpg",
+      "/artists/caravaggio/works/The Calling of Saint Matthew.jpg",
+      "/artists/caravaggio/works/The Supper at Emmaus.jpg"
+    ]
+  },
+  "dali": {
+    "portrait": "/artists/dali/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/dali/works/Swans Reflecting Elephants.jpg",
+      "/artists/dali/works/The Elephants.jpg",
+      "/artists/dali/works/The Persistence of Memory.jpg"
+    ]
+  },
+  "degas": {
+    "portrait": "/artists/degas/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/degas/works/Little Dancer of Fourteen Years.jpg",
+      "/artists/degas/works/The Absinthe Drinker.jpg",
+      "/artists/degas/works/The Ballet Class.jpg"
+    ]
+  },
+  "donatello": {
+    "portrait": "/artists/donatello/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/donatello/works/David.jpg",
+      "/artists/donatello/works/Gattamelata.jpg",
+      "/artists/donatello/works/Penitent Magdalene.jpg"
+    ]
+  },
+  "leonardo": {
+    "portrait": "/artists/leonardo/portrait/portrait.png",
+    "worksImages": [
+      "/artists/leonardo/works/Mona Lisa.jpg",
+      "/artists/leonardo/works/The Last Supper.jpg",
+      "/artists/leonardo/works/Vitruvian Man.jpg"
+    ]
+  },
+  "manet": {
+    "portrait": "/artists/manet/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/manet/works/A Bar at the Folies-Bergère.jpg",
+      "/artists/manet/works/Le Déjeuner sur l’herbe.jpg",
+      "/artists/manet/works/Olympia.jpg"
+    ]
+  },
+  "matisse": {
+    "portrait": "/artists/matisse/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/matisse/works/The Dance.jpg",
+      "/artists/matisse/works/The Red Studio.jpg",
+      "/artists/matisse/works/Woman with a Hat.jpg"
+    ]
+  },
+  "michelangelo": {
+    "portrait": "/artists/michelangelo/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/michelangelo/works/David.jpg",
+      "/artists/michelangelo/works/Pietà.jpg",
+      "/artists/michelangelo/works/The Creation of Adam.jpg"
+    ]
+  },
+  "monet": {
+    "portrait": "/artists/monet/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/monet/works/Impression, Sunrise.jpg",
+      "/artists/monet/works/Water Lilies.jpg",
+      "/artists/monet/works/Woman with a Parasol.jpg"
+    ]
+  },
+  "picasso": {
+    "portrait": "/artists/picasso/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/picasso/works/Les Demoiselles d’Avignon.jpg",
+      "/artists/picasso/works/PicassoGuernica.jpg",
+      "/artists/picasso/works/The Weeping Woman.jpg"
+    ]
+  },
+  "pissarro": {
+    "portrait": "/artists/pissarro/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/pissarro/works/Hoarfrost.jpg",
+      "/artists/pissarro/works/The Boulevard Montmartre at Night.jpg",
+      "/artists/pissarro/works/The Garden at Pontoise.jpg"
+    ]
+  },
+  "raphael": {
+    "portrait": "/artists/raphael/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/raphael/works/Sistine Madonna.jpg",
+      "/artists/raphael/works/The School of Athens.jpg",
+      "/artists/raphael/works/The Transfiguration.jpg"
+    ]
+  },
+  "rembrandt": {
+    "portrait": "/artists/rembrandt/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/rembrandt/works/Self-Portrait with Two Circles.jpg",
+      "/artists/rembrandt/works/The Anatomy Lesson of Dr. Nicolaes Tulp.jpg",
+      "/artists/rembrandt/works/The Night Watch.jpg"
+    ]
+  },
+  "renoir": {
+    "portrait": "/artists/renoir/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/renoir/works/Dance at Le Moulin de la Galette.jpg",
+      "/artists/renoir/works/Girl with a Watering Can.jpg",
+      "/artists/renoir/works/Luncheon of the Boating Party.jpg"
+    ]
+  },
+  "rubens": {
+    "portrait": "/artists/rubens/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/rubens/works/The Descent from the Cross.jpg",
+      "/artists/rubens/works/The Elevation of the Cross.jpg",
+      "/artists/rubens/works/The Judgment of Paris.jpg"
+    ]
+  },
+  "titian": {
+    "portrait": "/artists/titian/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/titian/works/Assumption of the Virgin.jpg",
+      "/artists/titian/works/Bacchus and Ariadne.jpg",
+      "/artists/titian/works/Venus of Urbino.jpg"
+    ]
+  },
+  "vangogh": {
+    "portrait": "/artists/vangogh/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/vangogh/works/Starry Night.jpg",
+      "/artists/vangogh/works/Sunflowers.jpg",
+      "/artists/vangogh/works/The Bedroom.jpg"
+    ]
+  },
+  "velazquez": {
+    "portrait": "/artists/velazquez/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/velazquez/works/Las Meninas.jpg",
+      "/artists/velazquez/works/Portrait of Innocent X.jpg",
+      "/artists/velazquez/works/The Surrender of Breda.jpg"
+    ]
+  },
+  "vermeer": {
+    "portrait": "/artists/vermeer/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/vermeer/works/Girl with a Pearl Earring.jpg",
+      "/artists/vermeer/works/The Milkmaid.jpg",
+      "/artists/vermeer/works/View of Delft.jpg"
+    ]
+  },
+  "warhol": {
+    "portrait": "/artists/warhol/portrait/portrait.jpg",
+    "worksImages": [
+      "/artists/warhol/works/Campbell’s Soup Cans.jpg",
+      "/artists/warhol/works/Eight Elvises.jpg",
+      "/artists/warhol/works/Marilyn Diptych.jpg"
+    ]
+  }
+}

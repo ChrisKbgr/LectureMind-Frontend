@@ -3,6 +3,7 @@ import cytoscape from 'cytoscape';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import NodeEditor from './components/NodeEditor';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { artPeriods, artistDatabase } from './data/artists';
 import Timeline from './components/Timeline';
 // Material UI imports
 import Box from '@mui/material/Box';
@@ -21,98 +22,7 @@ import Chip from '@mui/material/Chip';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-// Art history periods with their artists (module-level to keep hooks stable)
-const artPeriods = {
-  renaissance: {
-    name: 'Renaissance',
-    artists: [
-      { name: 'Leonardo da Vinci', birth: 1452, death: 1519, period: 'Renaissance', keyword: 'leonardo' },
-      { name: 'Michelangelo', birth: 1475, death: 1564, period: 'Renaissance', keyword: 'michelangelo' },
-      { name: 'Raphael', birth: 1483, death: 1520, period: 'Renaissance', keyword: 'raphael' },
-      { name: 'Donatello', birth: 1386, death: 1466, period: 'Early Renaissance', keyword: 'donatello' },
-      { name: 'Botticelli', birth: 1445, death: 1510, period: 'Renaissance', keyword: 'botticelli' },
-      { name: 'Titian', birth: 1488, death: 1576, period: 'Renaissance', keyword: 'titian' },
-      { name: 'Caravaggio', birth: 1571, death: 1610, period: 'Baroque', keyword: 'caravaggio' }
-    ]
-  },
-  baroque: {
-    name: 'Baroque',
-    artists: [
-      { name: 'Rembrandt', birth: 1606, death: 1669, period: 'Baroque', keyword: 'rembrandt' },
-      { name: 'Vermeer', birth: 1632, death: 1675, period: 'Baroque', keyword: 'vermeer' },
-      { name: 'Rubens', birth: 1577, death: 1640, period: 'Baroque', keyword: 'rubens' },
-      { name: 'Velázquez', birth: 1599, death: 1660, period: 'Baroque', keyword: 'velazquez' },
-      { name: 'Bernini', birth: 1598, death: 1680, period: 'Baroque', keyword: 'bernini' }
-    ]
-  },
-  impressionism: {
-    name: 'Impressionism',
-    artists: [
-      { name: 'Monet', birth: 1840, death: 1926, period: 'Impressionism', keyword: 'monet' },
-      { name: 'Renoir', birth: 1841, death: 1919, period: 'Impressionism', keyword: 'renoir' },
-      { name: 'Degas', birth: 1834, death: 1917, period: 'Impressionism', keyword: 'degas' },
-      { name: 'Manet', birth: 1832, death: 1883, period: 'Impressionism', keyword: 'manet' },
-      { name: 'Pissarro', birth: 1830, death: 1903, period: 'Impressionism', keyword: 'pissarro' }
-    ]
-  },
-  modern: {
-    name: 'Modern Art',
-    artists: [
-      { name: 'Picasso', birth: 1881, death: 1973, period: 'Modern', keyword: 'picasso' },
-      { name: 'Van Gogh', birth: 1853, death: 1890, period: 'Post-Impressionism', keyword: 'vangogh' },
-      { name: 'Matisse', birth: 1869, death: 1954, period: 'Modern', keyword: 'matisse' },
-      { name: 'Dali', birth: 1904, death: 1989, period: 'Surrealism', keyword: 'dali' },
-      { name: 'Warhol', birth: 1928, death: 1987, period: 'Pop Art', keyword: 'warhol' }
-    ]
-  }
-};
-
-// Artist database (module-level so hooks don't need to include it in deps)
-const artistDatabase = {
-  'leonardo': {
-    name: 'Leonardo da Vinci',
-    birth: 1452,
-    death: 1519,
-    period: 'Renaissance',
-    portrait: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg',
-    bio: 'Italian polymath of the Renaissance. Known for the Mona Lisa and The Last Supper.',
-    famousWorks: ['Mona Lisa', 'The Last Supper', 'Vitruvian Man'],
-    worksImages: [
-      'https://upload.wikimedia.org/wikipedia/commons/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/0/08/Leonardo_da_Vinci_%281452-1519%29_-_The_Last_Supper_%281495-1498%29.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/2/22/Da_Vinci_Vitruve_Luc_Viatour.jpg'
-    ]
-  },
-  'michelangelo': {
-    name: 'Michelangelo',
-    birth: 1475,
-    death: 1564,
-    period: 'Renaissance',
-    portrait: 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Michelangelo_-_Daniele_da_Volterra_-_Daniele_da_Volterra_001.jpg',
-    bio: 'Italian sculptor, painter, architect, and poet. Created the Sistine Chapel ceiling.',
-    famousWorks: ['David', 'Sistine Chapel', 'Pieta'],
-    worksImages: [
-      'https://upload.wikimedia.org/wikipedia/commons/1/1f/Michelangelo_-_David_-_Galleria_dell%27Accademia%2C_Florence.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/5/59/Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/8/8c/Michelangelo%27s_Pieta_5450_cut_out_black.jpg'
-    ]
-  },
-  'raphael': {
-    name: 'Raphael',
-    birth: 1483,
-    death: 1520,
-    period: 'Renaissance',
-    portrait: 'https://upload.wikimedia.org/wikipedia/commons/0/0f/1665_Giovanni_Battista_Gaulli_%28Baciccio%29_-_Portrait_of_a_Man_%28Self-portrait%29.jpg',
-    bio: 'Italian painter and architect. Known for his clarity of form and ease of composition.',
-    famousWorks: ['The School of Athens', 'Sistine Madonna', 'Transfiguration'],
-    worksImages: [
-      'https://upload.wikimedia.org/wikipedia/commons/7/72/Raffaello_Sanzio_da_Urbino_-_The_School_of_Athens_-_Google_Art_Project.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/7/7a/Raphael_-_Sistine_Madonna_-_Google_Art_Project.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/4f/Raffaello_Sanzio_da_Urbino_-_The_Transfiguration_-_Google_Art_Project.jpg'
-    ]
-  }
-  // ... other artists omitted for brevity (kept in component for earlier development)
-};
+// artist data moved to src/data/artists.js
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 
@@ -243,8 +153,9 @@ const MindMap = () => {
         
       ],
       layout: { name: 'preset' },
-      minZoom: 0.5,
-      maxZoom: 2,
+      minZoom: 0.05,
+      maxZoom: 3,
+      wheelSensitivity: 0.5,
     });
 
     cyRef.current = cy;
@@ -259,9 +170,9 @@ const MindMap = () => {
       getBoundingClientRect: containerRef.current?.getBoundingClientRect()
     });
 
-    // Set initial viewport
-    cy.fit();
-    cy.center();
+  // Set initial viewport with padding so canvas feels larger and allows farther zoom out
+  cy.fit(undefined, 40);
+  cy.center();
     console.log('Set initial viewport');
 
   // Removed style bypass handler to avoid conflicting style parse issues;
@@ -507,8 +418,9 @@ const MindMap = () => {
       // Lazy-load portrait image to improve initial render performance
       if (artistData.portrait) {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = artistData.portrait;
+        // Avoid crossOrigin to prevent CORS failures when serving from same origin
+        const encodedPortrait = encodeURI(artistData.portrait);
+        img.src = encodedPortrait;
         img.onload = () => {
           try {
             // Max size you allow in the canvas for artist nodes
@@ -632,10 +544,14 @@ const MindMap = () => {
 
           if (imgUrl) {
             const timg = new Image();
-            timg.crossOrigin = 'anonymous';
-            timg.src = imgUrl;
+            const encoded = encodeURI(imgUrl);
+            timg.src = encoded;
             timg.onload = () => {
-              try { thumb.style({ 'background-image': `url(${imgUrl})` }); } catch {}
+              try {
+                thumb.style({ 'background-image': `url("${encoded}")`, 'background-position': 'center', 'background-clip': 'none' });
+              } catch (e) {
+                console.warn('Failed to apply thumbnail image for', thumbId, e);
+              }
             };
           }
 
@@ -729,6 +645,43 @@ const MindMap = () => {
     }
   };
 
+  // Delete currently selected node (used by NodeEditor delete button)
+  const deleteSelectedNode = (nodeToDelete) => {
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    let node = null;
+    if (nodeToDelete) {
+      node = nodeToDelete;
+    } else if (selectedNodeRef.current) {
+      node = selectedNodeRef.current;
+    }
+    if (!node) return;
+
+    // Resolve nodeId safely: handle Cytoscape node objects (node.id()) or plain objects
+    let nodeId = null;
+    if (node) {
+      if (typeof node.id === 'function') {
+        nodeId = node.id();
+      } else if (node.data && typeof node.data === 'function') {
+        nodeId = node.data('id');
+      } else if (node.id) {
+        nodeId = node.id;
+      }
+    }
+    try {
+      // Remove node; 'remove' event handler will update detectedWords
+      node.remove ? node.remove() : cy.$id(nodeId).remove();
+      // Clear selection and UI
+      if (selectedNodeRef.current) {
+        selectedNodeRef.current = null;
+        setSelectedNode(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete node', nodeId, err);
+    }
+  };
+
   // Add this helper function
   const rgbToHex = (rgb) => {
     // Extract numbers from rgb string
@@ -788,45 +741,76 @@ const MindMap = () => {
     if (listening && transcript) {
       // When transcript updates, check for keywords
       const lowerTranscript = transcript.toLowerCase();
+      // Helper to safely build a regex from a keyword
+      const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
       keywords.forEach(async (keyword) => {
-        if (lowerTranscript.includes(keyword.toLowerCase())) {
+        const kw = (keyword || '').toLowerCase();
+        if (!kw) return;
+        // Match whole words to avoid partial mismatches but allow punctuation
+        const pattern = new RegExp(`\\b${escapeRegex(kw)}\\b`, 'i');
+        const matched = pattern.test(lowerTranscript) || lowerTranscript.includes(kw);
+        // Debug logging to help diagnose missed detections
+        console.debug('Keyword detection check:', { keyword: kw, matched, transcript: lowerTranscript });
+
+        if (matched) {
           // Simulate keyword detection logic
           const artistInfo = Object.values(artPeriods).flatMap(period => period.artists)
             .find(artist => artist.keyword === keyword.toLowerCase() || 
                            artist.name.toLowerCase().includes(keyword.toLowerCase()));
-          if (artistInfo) {
-            const cy = cyRef.current;
-            if (!cy) return;
-            const existingNodes = cy.$('node');
-            const keywordExists = existingNodes.some(n => {
-              const nodeLabel = (n.data('label') || '').toLowerCase();
-              const nodeId    = (n.id() || '').toLowerCase();
-              return nodeLabel.includes(keyword.toLowerCase()) ||
-                     nodeId.includes(keyword.toLowerCase()) ||
-                     (artistInfo && nodeId === artistInfo.keyword);
-            });
-            if (!keywordExists) {
-              const position = getFreePosition(
-                cyRef.current,
-                320, 240,
-                selectedNodeRef.current?.position()
-              );
-              const createdNode = await createArtistNode(artistInfo, position);
-              const createdNodeId = createdNode?.id();
-              if (selectedNodeRef.current && createdNodeId) {
-                cy.add({
-                  group: 'edges',
-                  data: { source: selectedNodeRef.current.id(), target: createdNodeId }
-                });
+
+          const cy = cyRef.current;
+          if (!cy) return;
+
+          const existingNodes = cy.$('node');
+          const keywordExists = existingNodes.some(node => {
+            const nodeLabel = (node.data('label') || '').toLowerCase();
+            const nodeId = (node.id() || '').toLowerCase();
+            return nodeLabel.includes(keyword.toLowerCase()) || 
+                   nodeId.includes(keyword.toLowerCase()) ||
+                   (artistInfo && nodeId === artistInfo.keyword);
+          });
+
+          if (!keywordExists) {
+            const position = {
+              x: 100 + Math.random() * 300,
+              y: 100 + Math.random() * 300,
+            };
+
+            try {
+              let createdNodeId = null;
+              if (artistInfo) {
+                // Create enhanced artist node
+                const node = await createArtistNode(artistInfo, position);
+                createdNodeId = node.id();
+                if (selectedNodeRef.current && createdNodeId) {
+                  cy.add({ group: 'edges', data: { source: selectedNodeRef.current.id(), target: createdNodeId } });
+                }
+              } else {
+                // Create a generic node for manually-added keywords
+                const safeKw = keyword.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+                const nodeId = `node-speech-${safeKw}-${Date.now()}`;
+                cy.add({ group: 'nodes', data: { id: nodeId, label: keyword }, position });
+                createdNodeId = nodeId;
+                if (selectedNodeRef.current && createdNodeId) {
+                  cy.add({ group: 'edges', data: { source: selectedNodeRef.current.id(), target: createdNodeId } });
+                }
               }
+
               setNodeCount(n => n + 1);
               setDetectedWords(prev => {
-                if (!prev.includes(keyword)) {
-                  return [...prev.slice(-9), keyword];
-                }
+                if (!prev.includes(keyword)) return [...prev.slice(-9), keyword];
                 return prev;
               });
+            } catch (err) {
+              console.error('Failed to create node for keyword from transcript', keyword, err);
             }
+          } else {
+            // Node exists; still ensure the keyword appears in detectedWords
+            setDetectedWords(prev => {
+              if (!prev.includes(keyword)) return [...prev.slice(-9), keyword];
+              return prev;
+            });
           }
         }
       });
@@ -838,10 +822,20 @@ const MindMap = () => {
   // we pass props to <NodeEditor /> inline where needed.
 
   const addKeyword = () => {
-    if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()]);
-      setNewKeyword('');
+    const word = newKeyword.trim();
+    if (!word) return;
+
+    // Add to the keywords list if not already present
+    if (!keywords.includes(word)) {
+      setKeywords(prev => [...prev, word]);
     }
+
+    // Clear input
+    setNewKeyword('');
+
+    // Do not auto-detect on manual add. Detection should only happen when
+    // the keyword is actually spoken (processed by the transcript effect)
+    // or when the user clicks the keyword chip (handleKeywordClick).
   };
 
   const removeKeyword = (index) => {
@@ -1205,6 +1199,7 @@ const MindMap = () => {
                   }
                   setSelectedNode(null);
                 }}
+                onDelete={deleteSelectedNode}
                 labelInput={labelInput}
                 setLabelInput={setLabelInput}
                 extraText={extraText}
