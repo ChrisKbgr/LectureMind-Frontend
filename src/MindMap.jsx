@@ -110,20 +110,6 @@ const artistDatabase = {
       'https://upload.wikimedia.org/wikipedia/commons/7/7a/Raphael_-_Sistine_Madonna_-_Google_Art_Project.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/4/4f/Raffaello_Sanzio_da_Urbino_-_The_Transfiguration_-_Google_Art_Project.jpg'
     ]
-  },
-  'rembrandt': {
-    name: 'Rembrandt',
-    birth: 1606,
-    death: 1669,
-    period: 'Baroque',
-    portrait: 'https://upload.wikimedia.org/wikipedia/commons/0/0a/Rembrandt_van_Rijn_-_Self-Portrait_%281659%29.jpg',
-    bio: 'Dutch Golden Age painter, use of light and shadow to capture human emotion and realism',
-    famousWorks: ['The Night Watch', 'The Anatomy Lesson of Dr. Nicolaes Tulp', 'Self-Portrait with Two Circles'],
-    worksImages: [
-      'https://upload.wikimedia.org/wikipedia/commons/3/3a/La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/3/3d/The_anatomy_lesson_of_Dr._Nicolaes_Tulp_PK-P-117.866.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/1/19/Rembrandt_Self_Portrait_with_Two_Circles.jpg'
-    ]
   }
   // ... other artists omitted for brevity (kept in component for earlier development)
 };
