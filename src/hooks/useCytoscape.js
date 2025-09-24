@@ -42,7 +42,7 @@ const useCytoscape = ({ onNodeSelect, onNodeUnselect }) => {
           selector: 'node',
           style: {
             'shape': 'round-rectangle',
-            'background-color': '#ff6b35',
+            'background-color': '#99AFD7',
             'label': 'data(label)',
             'color': '#fff',
             'text-outline-width': 0,

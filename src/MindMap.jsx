@@ -340,8 +340,8 @@ const MindMap = () => {
 
     // Create the node with simplified styling (custom renderer will handle the visual)
     let nodeStyle = {
-      'background-color': '#4CAF50',
-      'border-color': '#2E7D32',
+      'background-color': '#99AFD7',
+      'border-color': '#4470AD',
       'border-width': '3px',
       'color': 'white',
       'font-size': '14px',
@@ -392,9 +392,9 @@ const MindMap = () => {
         },
         position: pos,
         style: {
-          // Start with a green gradient for artists (you already had this)
-          'background-color': '#4CAF50',
-          'border-color': '#2E7D32',
+          
+          'background-color': '#E18127',
+          'border-color': '#924625',
           'border-width': '3px',
           'shape': 'round-rectangle',
 
@@ -404,15 +404,15 @@ const MindMap = () => {
 
           // Caption bar styling (matches global but wider per-node):
           'color': 'white',
-          'font-size': 14,
+          'font-size': 25,
           'text-valign': 'top',
           'text-halign': 'center',
           'text-wrap': 'wrap',
           'text-max-width': `${defaultW - 16}px`,
-          'text-background-color': '#000',
-          'text-background-opacity': 0.7,
+          'text-background-color': '#924625',
+          'text-background-opacity': 1,
           'text-background-shape': 'round-rectangle',
-          'text-background-padding': 4
+          'text-background-padding': 2
         }
       });
       // Lazy-load portrait image to improve initial render performance
@@ -424,21 +424,24 @@ const MindMap = () => {
         img.onload = () => {
           try {
             // Max size you allow in the canvas for artist nodes
-            const MAX_W = 480;
-            const MAX_H = 360;
+            const MAX_W = 360;   // was 480
+            const MAX_H = 260;   // was 360
+            const MIN_W = 220;
+            const MIN_H = 160;
       
             const naturalW = img.naturalWidth || img.width;
             const naturalH = img.naturalHeight || img.height;
       
             // Scale to fit within MAX but keep aspect ratio
             const scale = Math.min(MAX_W / naturalW, MAX_H / naturalH, 1); // no upscaling above natural
-            const fittedW = Math.max(240, Math.round(naturalW * scale));   // min width to avoid tiny cards
-            const fittedH = Math.max(180, Math.round(naturalH * scale));
+            const fittedW = Math.max(MIN_W, Math.round(naturalW * scale));   // min width to avoid tiny cards
+            const fittedH = Math.max(MIN_H, Math.round(naturalH * scale));
       
             // Apply image and new size
             node.style({
               'background-image': `url(${artistData.portrait})`,
-              'background-fit': 'cover',
+              'background-fit': 'contain',
+              'background-color': '#ffffff',
               'background-clip': 'node',         // ✅ ensures it draws inside the shape
               'background-opacity': 1,           // ✅ make sure it's visible
 
@@ -493,8 +496,8 @@ const MindMap = () => {
 
     // Add small thumbnail nodes for the artist's famous works (up to 3)
     if (artistData.worksImages && artistData.worksImages.length > 0) {
-      const TH_W = 60;
-      const TH_H = 44;
+      const TH_W = 140;
+      const TH_H = 100;
 
       artistData.worksImages.slice(0, 3).forEach((imgUrl, i) => {
         try {
@@ -523,22 +526,24 @@ const MindMap = () => {
               'width': `${TH_W}px`,
               'height': `${TH_H}px`,
               'shape': 'round-rectangle',
-              'background-fit': 'cover',
+              'background-fit': 'contain',
+              'background-color': '#FED4AD',
               'background-clip': 'node',
               'background-opacity': 1,
+
               'border-width': '1px',
-              'border-color': '#ffffff33',
-              'font-size': '10px',
+              'border-color': '#E18127',
+              'font-size': '18px',
 
               // tiny caption inside the thumb
               'text-valign': 'bottom',
               'text-halign': 'center',
               'text-wrap': 'wrap',
               'text-max-width': `${TH_W}px`,
-              'text-background-color': '#000',
-              'text-background-opacity': 0.65,
+              'text-background-color': '#372A2E',
+              'text-background-opacity': 0.9,
               'text-background-shape': 'round-rectangle',
-              'text-background-padding': 2
+              'text-background-padding': 4
             }
           });
 
@@ -606,8 +611,8 @@ const MindMap = () => {
         },
         position: position,
         style: {
-          'background-color': '#ff6b35',
-          'border-color': '#e55a2b',
+          'background-color': '#99AFD7',
+          'border-color': '#4470AD',
           'border-width': 2,
           'color': 'white',
           'font-size': 16,
@@ -1174,7 +1179,7 @@ const MindMap = () => {
             sx={{
               flex: 1,
               height: '100%',
-              bgcolor: '#fafafa',
+              bgcolor: '#FBEED8',
               border: '1px solid #e0e0e0'
             }}
           />

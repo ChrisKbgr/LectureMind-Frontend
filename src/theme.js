@@ -3,13 +3,13 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#3f51b5', // Deep blue for professionalism
+      main: '#233C67', // Deep blue for professionalism
     },
     secondary: {
       main: '#fbc02d', // Gold/yellow for artistic accent
     },
     background: {
-      default: '#f5f5f5', // Light background for clarity
+      default: '#FDBABA', // Light background for clarity
       paper: '#ffffff',
     },
   },
