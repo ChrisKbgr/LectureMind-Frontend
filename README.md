@@ -1,9 +1,10 @@
 # LectureMind Frontend
 
-A sophisticated React-based application that transforms lectures into interactive mind maps using voice recognition and AI-powered content generation. LectureMind helps students and educators capture, organize, and visualize lecture content in real-time.
+A sophisticated React-based application that transforms lectures into interactive mind maps using voice recognition and AI-powered content generation. LectureMind helps students and educators capture, organize, and visualize lecture content in real-time.  
 
+You can now try the live application here: [LectureMind Online](https://deft-crumble-837a72.netlify.app/)
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (version 14 or higher)
