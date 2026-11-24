@@ -15,8 +15,8 @@ You can now try the live application here: [LectureMind Online](https://deft-cru
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd lecturemind-frontend
+   git clone https://github.com/ChrisKbgr/LectureMind-Frontend.git
+   cd LectureMind-Frontend
    ```
 
 2. **Install dependencies**
